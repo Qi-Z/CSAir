@@ -221,9 +221,10 @@ while prompt_exist do
   end
 end
 
+#Show on map.
 puts("Opening browser to show routes for you ...")
 route_arr = Array.new
-url = "http://www.gcmap.com/mapui?P="
+url = "http:/main.rb/www.gcmap.com/mapui?P="
 
 data_hash["routes"].each do |route|
   route_str = route["ports"][0] + "-" + route["ports"][1]
