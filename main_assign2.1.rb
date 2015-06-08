@@ -127,23 +127,23 @@ data_hash = JSON.parse(file)
 
 airline = Airline.new(data_hash)
 
-# city_hash = Hash.new #city_hash uses code as key.
-# graph = Hash.new #graph uses code as key.
-# # Extract cities from json file. 48 cities.
-# # Use code as city ID.
-# data_hash['metros'].each do |city|
-#
-#   graph[city['code']] = Hash.new
-#   city_hash[city['code']] = City. new(city['code'], city['name'], city['country'], city['continent'],
-#                                       city['timezone'], city['coordinates'], city['population'], city['region'])
-#   #puts city['code']
-# end
+city_hash = Hash.new #city_hash uses code as key.
+graph = Hash.new #graph uses code as key.
+# Extract cities from json file. 48 cities.
+# Use code as city ID.
+data_hash['metros'].each do |city|
 
-# # Add edges
-# data_hash['routes'].each do |route|
-#   graph[route['ports'][0]][route['ports'][1]] =  Node. new(route['ports'][1], route['distance'])
-#   graph[route['ports'][1]][route['ports'][0]] =  Node. new(route['ports'][0], route['distance'])
-# end
+  graph[city['code']] = Hash.new
+  city_hash[city['code']] = City. new(city['code'], city['name'], city['country'], city['continent'],
+                                      city['timezone'], city['coordinates'], city['population'], city['region'])
+  #puts city['code']
+end
+
+# Add edges
+data_hash['routes'].each do |route|
+  graph[route['ports'][0]][route['ports'][1]] =  Node. new(route['ports'][1], route['distance'])
+  graph[route['ports'][1]][route['ports'][0]] =  Node. new(route['ports'][0], route['distance'])
+end
 
 
 prompt_exist = true
@@ -151,7 +151,7 @@ prompt_exist = true
 #  begin with #: to remind user to type something.
 #  begin with "- :"  : to show user results.
 while prompt_exist do
-  print_menu_1
+  print_menu_1()
   option = gets.chomp # User option
 
   case option
@@ -179,10 +179,20 @@ while prompt_exist do
 
 
     when "3"
-      print_menu_2
+      print_menu_2()
       sub_option = gets.chomp
       case sub_option
         when "a"
+          # longest = data_hash["routes"][0]["distance"]
+          # longest_route = data_hash["routes"][0]
+          # data_hash["routes"].each do |route|
+          #   if longest < route["distance"]
+          #     longest = route["distance"]
+          #     longest_route = route
+          #   end
+          # end
+          # puts("#{longest_route["ports"][0]} <---> #{longest_route["ports"][1]}, distance is #{longest}")
+          #
           g = airline.get_graph()
           flight_arr = Array.new
           g.each do |code, h|
@@ -239,6 +249,15 @@ while prompt_exist do
             puts(e[0]+" --> "+e[1]+", distance is #{min}")
           end
 
+          # shortest = data_hash["routes"][0]["distance"]
+          # shortest_route = data_hash["routes"][0]
+          # data_hash["routes"].each do |route|
+          #   if shortest > route["distance"]
+          #     shortest = route["distance"]
+          #     shortest_route = route
+          #   end
+          # end
+          # puts("#{shortest_route["ports"][0]} <---> #{shortest_route["ports"][1]}, distance is #{shortest}")
         when "c"
           total_dist = 0
           num_routes = 0
@@ -252,7 +271,25 @@ while prompt_exist do
           end
           puts("Average distance is #{total_dist/num_routes}")
         when "d" # Do this messy stuff in case the city hash above has some cities not server by CSAir.
-
+          # tmp_key, tmp_value = city_hash.first
+          # biggest = tmp_value.get_all["population"]
+          # biggest_city_code = tmp_key
+          # #puts(biggest)
+          # #puts(biggest_city_code)
+          #
+          # data_hash["routes"].each do |route|
+          #   city_code = route["ports"][0]
+          #   if biggest < city_hash[city_code].get_all["population"]
+          #     biggest = city_hash[city_code].get_all["population"]
+          #     biggest_city_code = city_code
+          #
+          #   end
+          #   city_code = route["ports"][1]
+          #   if biggest < city_hash[city_code].get_all["population"]
+          #     biggest = city_hash[city_code].get_all["population"]
+          #     biggest_city_code = city_code
+          #   end
+          # end
           code_arr = airline.get_cities_reached
           pop_arr = Array.new
           code_arr.each do |code|
@@ -323,7 +360,20 @@ while prompt_exist do
             puts("#{k}:")
             puts(v)
           end
-
+          # city_hash.each do |k, v|
+          #   continent = v.get_all["continent"]
+          #   if continent_hash.has_key?(continent)
+          #     continent_hash[continent].push(v.get_all["name"])
+          #   else
+          #     continent_hash[continent] = Array.new
+          #     continent_hash[continent].push(v.get_all["name"])
+          #   end
+          # end
+          # continent_hash.each do |k, v|
+          #   # I haven't consider duplicates of city names here.
+          #
+          #   puts("#{k}: #{v.join(", ")}")
+          # end
         when "h"
           # Typically the hub city is the city with the most flights out, you don't have to do it by continent.
           # Usually, people print the top 3 "hub cities" and their number of outbound flights. --- From sp15 piazza.
@@ -349,7 +399,24 @@ while prompt_exist do
         else
           puts("Invalid option!")
       end
-
+    # when "4"
+    #   puts(["a. Remove a city.",
+    #         "b. Remove a route.",
+    #         "c. Add a city, including all its necessary information.",
+    #         "d. Add a route, including all its necessary information.",
+    #         "e. Edit an existing city."
+    #        ].join("\n") + "\n\n")
+    #   sub_option = gets.chomp
+    #   case sub_option
+    #     when "a"
+    #
+    #     when "b"
+    #     when "c"
+    #     when "d"
+    #     when "e"
+    #     else
+    #       puts("Invalid option!")
+    #   end
     when "q", "Q"
       prompt_exist = false
     else
@@ -360,19 +427,17 @@ end
 #Show on map.
 puts("Opening browser to show routes for you ...")
 route_arr = Array.new
-url = "http:/www.gcmap.com/mapui?P="
+url = "http:/main.rb/www.gcmap.com/mapui?P="
 
-graph = airline.get_graph
-graph.each do |c, h|
-  h.each do |code, node|
-    route_arr.push(c+'-'+code)
-  end
+data_hash["routes"].each do |route|
+  route_str = route["ports"][0] + "-" + route["ports"][1]
+  route_arr.push(route_str)
 end
-
 url += route_arr.join(",+")
 Launchy.open(url)
 
-
+#puts $count
+#puts graph
 
 
 
