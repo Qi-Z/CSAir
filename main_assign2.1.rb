@@ -52,31 +52,94 @@ def is_num(s)
   return flag
 end
 
-# Take in an array containing all necessary info about a city.
-# Parameter type: [code 0, name 1, country 2, continent 3, timezone 4, coordinates(a hash table) 5, population 6, region 7]
-# This parameter is the same as params of the constructor of city class.
-# Do SANITY-CHECKING. Return a city object is it passes the checking, otherwise return nil.
-def create_city(info_arr)
-  puts(info_arr.class)
-  if info_arr.include?("") # check if empty string is provided
-    puts("Some info is not provided! Creating Failed!")
-  # Based on Wikipedia page about continents. One model is 7-continent one. I use it.
-  elsif !["africa", "europe", "asia", "north america", "south america", "antarctica", "australia"].include?(info_arr[3])
-    puts("The continent you provided is incorrect! Creating Failed!")
-  #  Coordinated Universal Time (UTC), from the westernmost (−12:00) to the easternmost (+14:00).
-  elsif info_arr[4] < -12 || info_arr[4] > 14
-    puts("Timezone not in range [-12, 14]! Creating Failed!")
+# Take in city info given by user in this format:
+# code#name#country#continent#timezone#coordinate1#coordinate2#population#region
+# Do sanity-checking.
+# Return an array: [city object, error_info_array]
+def verify_city_info(s)
 
-  else
-    info_arr[0].upcase!
-    info_arr[1] = info_arr[1].split.map(&:capitalize).join(' ') # capitalize each word
-    info_arr[2] = info_arr[2].split.map(&:capitalize).join(' ') # capitalize each word
-    info_arr[3] = info_arr[3].split.map(&:capitalize).join(' ')
-
-    return City.new(*info_arr)
+  errors = ['Info not enough! ', 'Continent is wrong! ', 'Timezone not in range[-12, 14] or not number!',
+            'Population should be non-negative integer! ', 'Region should be a number! ',
+            'Coordinates wrong, N/S[0-90], E/W[0-180]! ']
+  info_arr = s.split('#')
+  verified = true
+  error_info = Array.new # This contains actually errors.
+  if info_arr.size != 9
+    return [nil, [errors[0]]]
   end
-    nil
+  info_arr.map!{|e|   # map! makes it possible to change elements in place.
+    e.rstrip.lstrip
+  }
+  if info_arr.include?("")
+    verified = false
+    error_info.push(errors[0])
+  else
+    code = info_arr[0].upcase
+    name = info_arr[1].split.map(&:capitalize).join(' ')
+    country = info_arr[2].split.map(&:capitalize).join(' ')
+    timezone = info_arr[4]
+    longit = info_arr[5].downcase
+    lat = info_arr[6].downcase
+    pop = info_arr[7]
+    region = info_arr[8]
+    coordinates = Hash.new()
+    range = {'s'=>[0, 90], 'n'=>[0,90], 'e'=>[0, 180],'w'=>[0, 180]}
+    continent = info_arr[3].downcase
+    # Based on Wikipedia page about continents. One model is 7-continent one. I use it.
+    if ["africa", "europe", "asia", "north america", "south america", "antarctica", "australia"].include?(continent)
+      continent = continent.split.map(&:capitalize).join(' ') # capitalize every word
+    else
+      verified = false
+      error_info.push(errors[1])
+    end
+    if is_num(timezone) && timezone.to_f >= -12 && timezone.to_f <= 14
+      timezone = timezone.to_f
+    else
+      verified = false
+      error_info.push(errors[2])
+    end
+    if is_int(pop) && pop.to_i >= 0
+      pop = pop.to_i
+    else
+      verified = false
+      error_info.push(errors[3])
+    end
+    if is_int(region)
+      region = region.to_i
+    else
+      verified = false
+      error_info.push(errors[4])
+    end
+    if ['ne','en','nw','wn','se','es','sw','ws'].include?((longit[0]+lat[0]).downcase)
+      if is_num(longit[1..-1]) && is_num(lat[1..-1])
+        if (longit[1..-1].to_f <= range[longit[0]][1]) && (longit[1..-1].to_f >= range[longit[0]][0]) && (lat[1..-1].to_f <= range[lat[0]][1]) && (lat[1..-1].to_f >= range[lat[0]][0])
+          coordinates[longit[0].upcase] = longit[1..-1].to_f
+          coordinates[lat[0].upcase] = lat[1..-1].to_f
+        else
+          verified = false
+          error_info.push(errors[-1])
+        end
+      else
+        verified = false
+        error_info.push(errors[-1])
+      end
+    else
+      verified = false
+      error_info.push(errors[-1])
+    end
+    info_arr = [code, name, country, continent, timezone, coordinates, pop, region ]
+  end
+  error_info.uniq! #remove duplicate error messages
+  if verified
+
+    city = City.new(*info_arr)
+    return [city, []]
+  else
+    return [nil, error_info]
+  end
+
 end
+
 class City
   # Notice that coordinates is a hash table
   def initialize(code, name, country, continent, timezone, coordinates, population, region)
@@ -237,23 +300,6 @@ data_hash = JSON.parse(file)
 
 airline = Airline.new(data_hash)
 
-# city_hash = Hash.new #city_hash uses code as key.
-# graph = Hash.new #graph uses code as key.
-# # Extract cities from json file. 48 cities.
-# # Use code as city ID.
-# data_hash['metros'].each do |city|
-#
-#   graph[city['code']] = Hash.new
-#   city_hash[city['code']] = City. new(city['code'], city['name'], city['country'], city['continent'],
-#                                       city['timezone'], city['coordinates'], city['population'], city['region'])
-#   #puts city['code']
-# end
-
-# # Add edges
-# data_hash['routes'].each do |route|
-#   graph[route['ports'][0]][route['ports'][1]] =  Node. new(route['ports'][1], route['distance'])
-#   graph[route['ports'][1]][route['ports'][0]] =  Node. new(route['ports'][0], route['distance'])
-# end
 
 
 prompt_exist = true
@@ -516,67 +562,13 @@ while prompt_exist do
                 puts("e.g a#b#c#asia#9#N45#W35#2000#1\n")
                 next
               end
-              info_arr = s.split('#')
-              if info_arr.size == 9
-                info_arr.map!{|e|   # map! makes it possible to change elements in place.
-                  e.rstrip.lstrip
-                }
-                timezone = info_arr[4]
-                longit = info_arr[5].downcase
-                lat = info_arr[6].downcase
-                pop = info_arr[7]
-                region = info_arr[8]
-                coordinates = Hash.new()
-                range = {'s'=>[0, 90], 'n'=>[0,90], 'e'=>[0, 180],'w'=>[0, 180]}
-                if info_arr.include?("")
-                  puts("Some info is not provided! Adding failed!")
-                  next
-                end
-
-                if is_num(timezone)
-                  timezone = timezone.to_f
-                else
-                  puts("Timezone incorrect! Adding failed!")
-                  next
-                end
-
-                if is_int(pop) && pop.to_i >= 0
-                  pop = pop.to_i
-                else
-                  puts("Population is not string or it's negative or it's float! Adding failed!")
-                  next
-                end
-
-                if !is_num(region)
-                  puts("Region is not number! Adding failed!")
-                  next
-                else
-                  region = region.to_i
-                end
-
-                if ['ne','en','nw','wn','se','es','sw','ws'].include?((longit[0]+lat[0]).downcase)
-                  if is_num(longit[1..-1]) && is_num(lat[1..-1])
-                    if (longit[1..-1].to_f <= range[longit[0]][1]) && (longit[1..-1].to_f >= range[longit[0]][0]) && (lat[1..-1].to_f <= range[lat[0]][1]) && (lat[1..-1].to_f >= range[lat[0]][0])
-                      coordinates[longit[0].upcase] = longit[1..-1].to_f
-                      coordinates[lat[0].upcase] = lat[1..-1].to_f
-                    else
-                      puts("coord wrong range! Adding failed!")
-                      next
-                    end
-                  else
-                    puts("coordinate incorrect! Adding failed!")
-                    next
-
-
-                  end
-                else
-                  puts("coordinate incorrect! Adding failed!")
-                  next
-                end
-                airline.add_city(create_city(info_arr[0..3]+[timezone, coordinates, pop, region]))
+              res = verify_city_info(s)
+              if res[0] == nil
+                puts("Fail to add city: ")
+                puts(res[1].to_s)
               else
-                puts("Not enough info, Adding Failed!\n")
-                next
+                airline.add_city(res[0])
+                puts("City added!")
               end
 
             end
