@@ -156,32 +156,40 @@ while prompt_exist do
 
   case option
     when "1"
-      puts(airline.get_cities_reached().join(", "))
+      puts(airline.get_cities_reached.join(", "))
     when '2'
-      puts "Please type in the city name or code:\n# "
-      s = gets.chomp.downcase
-
-      city = airline.search_city(s)
-      if city == nil
-        puts "- : No Match!"
-      else
-        puts("- :")
-        city.get_all.each do |k, v|
-          puts("#{k} : #{v}")
-
+      while true do
+        puts "Please type in the city name or code: ('<' to go back to last menu)\n# "
+        s = gets.chomp.downcase
+        if s == '<'
+          break
         end
-        puts "\nAll cities accessible from #{city.get_all['name']}:"
-        city_hash = airline.get_city_hash()
-        airline.cities_directly_reached_from(s).each do |code, node|
-          puts("#{city_hash[code].get_all["name"]}, #{node.get_dist}")
+        city = airline.search_city(s)
+        if city == nil
+          puts "- : No Match!"
+        else
+          puts("- :")
+          city.get_all.each do |k, v|
+            puts("#{k} : #{v}")
+
+          end
+          puts "\nAll cities accessible from #{city.get_all['name']}:"
+          city_hash = airline.get_city_hash()
+          airline.cities_directly_reached_from(s).each do |code, node|
+            puts("#{city_hash[code].get_all["name"]}, #{node.get_dist}")
+          end
         end
       end
 
 
     when "3"
       print_menu_2
-      sub_option = gets.chomp
-      case sub_option
+      while true do
+        sub_option = gets.chomp
+        if sub_option == "<"
+          break
+        end
+        case sub_option
         when "a"
           g = airline.get_graph()
           flight_arr = Array.new
@@ -349,7 +357,7 @@ while prompt_exist do
         else
           puts("Invalid option!")
       end
-
+      end
     when "q", "Q"
       prompt_exist = false
     else
