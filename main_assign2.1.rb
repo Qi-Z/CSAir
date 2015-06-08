@@ -293,6 +293,37 @@ class Airline
     end
 
   end
+
+  # Take in a string from#to#distance. From and To are codes.
+  def add_route_by_string(s)
+    arr = s.split('#')
+    arr.map!{|e| # Remove preceding and trailing spaces
+      e.lstrip.rstrip
+    }
+
+    if arr.size == 3
+      if arr.include?("")
+        puts("Not enough info! Adding failed! ")
+      else
+        f = search_city(arr[0]) # must be in city_hash in order for the route to be added.
+        t = search_city(arr[1])
+        d = arr[2]
+        if f != nil && t != nil && is_num(d)
+          d = d.to_f
+          node = Node.new(f.get_all['code'], d)
+          @graph[f.get_all['code']][t.get_all['code']] = node
+          puts("Route added!")
+        else
+          puts("Incorrect format or city does not exists! ")
+
+        end
+      end
+    else
+      puts("Not enough info! Adding failed! ")
+
+    end
+
+  end
 end
 
 file = File.read('map_data.json')
@@ -573,6 +604,14 @@ while prompt_exist do
 
             end
           when "4"
+            while true do
+              puts("# Type in route in this format code#code#distance: ")
+              s = gets.chomp
+              if s == '<'
+                break
+              end
+              airline.add_route_by_string(s)
+            end
           when "5"
           else
             puts("Invalid option!")
