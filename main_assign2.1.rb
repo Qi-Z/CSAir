@@ -324,6 +324,42 @@ class Airline
     end
 
   end
+
+  # Edit a city. City code cannot be changed.
+  # info_str is a complete info string used in verify_city_info.
+  def update_city(city_code, info_str)
+
+    if search_city(city_code) == nil
+      puts("No such city")
+    else
+      result = verify_city_info(info_str)
+      if result[0] != nil
+        @city_hash[result[0].get_all['code']] = result[0]
+        puts("#{city_code} updated! ")
+      else
+        puts("Failed!"+ result[1].to_s)
+      end
+    end
+  end
+
+  # Return a city info separated by '#'
+  def city_info_string(city_code)
+    str = Array.new
+    city = search_city(city_code)
+    if city == nil
+      return nil
+    else
+      city.get_all.each do |k, v|
+        if v.is_a?(Hash) # formatting coordinates
+          str.push(v.keys[0]+v.values[0].to_s+'#'+v.keys[1]+v.values[1].to_s)
+        else
+          str.push(v)
+        end
+
+      end
+      return str.join("#")
+    end
+  end
 end
 
 file = File.read('map_data.json')
@@ -613,6 +649,30 @@ while prompt_exist do
               airline.add_route_by_string(s)
             end
           when "5"
+            while true do
+              puts("Type in city CODE of the city to be edited: #")
+              s = gets.chomp
+              if s == '<'
+                break
+              end
+              city = airline.search_city(s)
+              if city == nil
+                puts("No such city! ")
+              else
+                while true do
+                  puts("========\nIn this format: name#country#continent#timezone#coordinate1#coordinate2#population#region")
+                  puts("\'>\' to show current info")
+                  info = gets.chomp
+                  if info == '<'
+                    break
+                  elsif info == '>'
+                    puts("current info: #{airline.city_info_string(s)}")
+                    next
+                  end
+                  airline.update_city(s, s+'#'+info)
+                end
+              end
+            end
           else
             puts("Invalid option!")
         end
