@@ -393,14 +393,85 @@ class Airline
       return str.join("#")
     end
   end
+
+  # Get info of a route
+  # Take in a string, a list of city codes separated by comma.
+  # Return [false, {}]   OR  [true, {total_dist, cost, time}]
+  def get_route_info(s)
+    # string cleaning
+    city_code_arr = s.split(',')
+    if city_code_arr.size < 2
+      puts("Illegal route! Need at least 2 cities!")
+      return [false, {}]
+    end
+    city_code_arr.map!{|c|
+      c.lstrip.rstrip
+    }
+    all_city_exist = true
+    city_code_arr.each do |code|
+      if search_city(code) == nil
+        all_city_exist = false
+        break
+      else
+        next
+      end
+    end
+
+    if all_city_exist
+      edge_arr = Array.new   #[[code of from, code of to], [], ..., []]
+      # route parsing: basically change [SCL, LAX, MEX] to [[SCL, LAX], [LAX, MEX]]
+      # for every code in array except the 1st and last codes.
+
+      city_code_arr[1..-2].each do |code|
+        code_ = search_city(code).get_all['code']
+        edge_arr.push(code_)
+        edge_arr.push(code_)
+      end
+      # prepend and append 1st and last code to edge_arr
+      edge_arr.unshift(search_city(city_code_arr[0]).get_all['code'])
+      edge_arr.push(search_city(city_code_arr[-1]).get_all['code'])
+      if edge_arr.size % 2 != 0
+        puts("Something wrong in route parsing!")
+        return [false,{}]
+      else
+        edge_arr = edge_arr.each_slice(2).to_a
+      end
+      # start check each route in the graph
+      total_dist = 0
+      cost = 0
+      time = 0
+      puts(edge_arr)
+      edge_arr.each do |route| # route is an array of 2 elements : [from, to]
+        from = route[0]
+        to = route[1]
+        puts("#{from} -> #{to}:  #{search_city(to).get_all['code']}")
+        if @graph.has_key?(from)
+          if @graph[from].has_key?(to)
+            total_dist += @graph[from][to].get_dist
+          else
+            puts("No flight from #{from} to #{to}")
+          end
+        else
+          puts("No flight from #{from}")
+          return [false,{}]
+        end
+      end
+      return [true, {"total_dist"=>total_dist, "cost"=>cost, "time"=>time}]
+    else
+
+      puts("Not all cities are in our city_hash! Please check code spelling and make sure all cities have been recorded by us. ")
+      return [false, {}]
+    end
+
+  end
 end
 
 file = File.read('map_data.json')
 data_hash = JSON.parse(file)
 
 airline = Airline.new(data_hash)
-
-
+puts(airline.get_route_info("scl, LIM, mex").to_s)
+#puts(airline.get_graph)
 prompt_exist = true
 
 #  begin with #: to remind user to type something.
