@@ -437,17 +437,30 @@ class Airline
         edge_arr = edge_arr.each_slice(2).to_a
       end
       # start check each route in the graph
+      first_leg_cost = 0.35
+      cost_delta = -0.05
       total_dist = 0
       cost = 0
       time = 0
       puts(edge_arr)
+      leg_num = 0
       edge_arr.each do |route| # route is an array of 2 elements : [from, to]
         from = route[0]
         to = route[1]
         puts("#{from} -> #{to}:  #{search_city(to).get_all['code']}")
         if @graph.has_key?(from)
           if @graph[from].has_key?(to)
-            total_dist += @graph[from][to].get_dist
+            dist = @graph[from][to].get_dist
+            total_dist += dist
+            price = (first_leg_cost+cost_delta*leg_num)
+            if price > 0
+              cost += price * dist
+            else
+              cost += 0
+            end
+
+            leg_num += 1
+            next
           else
             puts("No flight from #{from} to #{to}")
           end
