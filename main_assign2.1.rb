@@ -7,7 +7,8 @@ def print_menu_1()
   puts("\n\n======================")
   puts("1. Get a list of all the cities that CSAir flies to.\n2. Show city info.\n3. Statistical information about CSAir's route network.")
   puts("4. Do some editing.")
-  puts("Type Q or q to exit.")
+  puts("Type Q or q to exit (without saving). Type & to save current map. ")
+  puts("Type Q& or q& to exit and save. ")
   puts("======================")
   puts("# ")
 end
@@ -140,6 +141,34 @@ def verify_city_info(s)
 
 end
 
+# Take in airline class for the graph, data_hash for data source part.
+# Save these hash tables to disk.
+def save_json_to_disk(airline, data_hash)
+  File.open("temp.json","w") do |f|
+    h = Hash.new
+    city_hash = airline.get_city_hash
+    graph = airline.get_graph
+    h['data sources'] = data_hash['data sources']
+
+    # extract city info from city_hash
+    c_arr = Array.new
+    city_hash.each do |code, city_object|
+      c = city_object.get_all
+      c_arr.push(c)
+    end
+    h['metros'] = c_arr
+
+    #route info
+    route_arr = Array.new
+    graph.each do |code, hash_table|
+      hash_table.each do |c, node|
+        route_arr.push({"ports"=>[code, c], "distance"=> node.get_dist})
+      end
+    end
+    h['routes'] = route_arr
+    f.write(JSON.pretty_generate(h))
+  end
+end
 class City
   # Notice that coordinates is a hash table
   def initialize(code, name, country, continent, timezone, coordinates, population, region)
@@ -177,7 +206,7 @@ class Airline
     2. original_data, the hash table of the original json file.
     3. city_hash, hash table (code, city_class)
 =end
-  def initialize(data_hash) # Take in a Hash table of the json file.
+  def initialize(data_hash, double_edge = true) # Take in a Hash table of the json file.
     @graph = Hash.new
     @city_hash = Hash.new
 
@@ -191,7 +220,11 @@ class Airline
     # Add edges, for assignment 2.0. [SCL, LAX] means both two directions.
     data_hash['routes'].each do |route|
       @graph[route['ports'][0]][route['ports'][1]] =  Node. new(route['ports'][1], route['distance'])
-      @graph[route['ports'][1]][route['ports'][0]] =  Node. new(route['ports'][0], route['distance'])
+
+      # This line assumes given json file implicitly indicates double edge.
+      if double_edge
+        @graph[route['ports'][1]][route['ports'][0]] =  Node. new(route['ports'][0], route['distance'])
+      end
     end
   end
 
@@ -366,7 +399,6 @@ file = File.read('map_data.json')
 data_hash = JSON.parse(file)
 
 airline = Airline.new(data_hash)
-
 
 
 prompt_exist = true
@@ -677,6 +709,13 @@ while prompt_exist do
             puts("Invalid option!")
         end
       end
+    when '&'
+      save_json_to_disk(airline, data_hash)
+      puts("File saved!")
+    when 'Q&', "q&"
+      save_json_to_disk(airline, data_hash)
+      puts("File saved!")
+      prompt_exist = false
     when "q", "Q"
       prompt_exist = false
     else
